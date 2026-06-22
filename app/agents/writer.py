@@ -41,6 +41,16 @@ class WriterAgent:
             except ImportError:
                 logger.warning("Anthropic not installed, using fallback")
                 return None
+        elif "gemini" in self.model.lower():
+            try:
+                import google.generativeai as genai
+                from app.config import GOOGLE_API_KEY
+                if GOOGLE_API_KEY:
+                    genai.configure(api_key=GOOGLE_API_KEY)
+                return genai.GenerativeModel(self.model)
+            except Exception as e:
+                logger.warning(f"Google Generative AI not initialized: {e}")
+                return None
         return None
 
     def synthesize_brief(
@@ -106,6 +116,15 @@ Focus on extracting the most important and relevant findings. Each finding shoul
                     messages=[{"role": "user", "content": prompt}]
                 )
                 content = response.content[0].text
+            elif "gemini" in self.model.lower():
+                response = self.llm.generate_content(
+                    prompt,
+                    generation_config={
+                        "temperature": 0.7,
+                        "max_output_tokens": 2000,
+                    }
+                )
+                content = response.text
             else:
                 return self._fallback_synthesis(query, search_results, extracted_content)
 

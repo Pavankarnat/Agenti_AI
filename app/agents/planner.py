@@ -39,6 +39,16 @@ class PlannerAgent:
             except ImportError:
                 logger.warning("Anthropic not installed, using fallback")
                 return None
+        elif "gemini" in self.model.lower():
+            try:
+                import google.generativeai as genai
+                from app.config import GOOGLE_API_KEY
+                if GOOGLE_API_KEY:
+                    genai.configure(api_key=GOOGLE_API_KEY)
+                return genai.GenerativeModel(self.model)
+            except Exception as e:
+                logger.warning(f"Google Generative AI not initialized: {e}")
+                return None
         return None
 
     def create_plan(self, query: str) -> ResearchPlan:
@@ -87,6 +97,15 @@ Create 3-5 specific, targeted search queries that will help answer the original 
                     messages=[{"role": "user", "content": prompt}]
                 )
                 content = response.content[0].text
+            elif "gemini" in self.model.lower():
+                response = self.llm.generate_content(
+                    prompt,
+                    generation_config={
+                        "temperature": 0.7,
+                        "max_output_tokens": 1000,
+                    }
+                )
+                content = response.text
             else:
                 return self._default_plan(query)
 
@@ -145,7 +164,6 @@ Create 3-5 specific, targeted search queries that will help answer the original 
         )
 
 
-# Global instance
 planner = PlannerAgent()
 
 
@@ -160,14 +178,3 @@ def create_plan(query: str) -> ResearchPlan:
         ResearchPlan object
     """
     return planner.create_plan(query)
-
-
-if __name__ == "__main__":
-    # Example usage
-    plan = create_plan("What are the latest advancements in AI memory systems?")
-    print(f"Query: {plan.original_query}")
-    print(f"Research Approach: {plan.research_approach}")
-    print(f"Search Queries:")
-    for i, q in enumerate(plan.search_queries, 1):
-        print(f"  {i}. {q}")
-    print(f"Focus Areas: {', '.join(plan.expected_focus_areas)}")

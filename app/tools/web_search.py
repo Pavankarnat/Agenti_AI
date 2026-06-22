@@ -5,7 +5,7 @@ Supports DuckDuckGo search via ddgs library.
 
 import logging
 from typing import List
-from ddgs import DDGS
+from duckduckgo_search import DDGS
 from app.models.schemas import SearchResult, SearchResults
 
 logger = logging.getLogger(__name__)
